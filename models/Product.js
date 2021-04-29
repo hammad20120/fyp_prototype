@@ -8,8 +8,8 @@ const productSchema = new Schema({
     categories: String,
     group_id: String,
     in_stock: Boolean,
-    Color: String,
-    Brand: String
+    color: String,
+    brand: String
 },
 {
     timestamps: true
