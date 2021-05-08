@@ -1,30 +1,92 @@
-const router = require('express').Router();
-const mongoose = require('mongoose');
-const Product = require('../models/Product');
+const router = require("express").Router();
+const mongoose = require("mongoose");
+const Product = require("../models/Product");
 
-const EventRewards = mongoose.model('Event_reward', new mongoose.Schema({}), 'event_reward');
-const SimilarProds = mongoose.model('SimilarProds', new mongoose.Schema({}), 'similar_products');
+const EventRewards = mongoose.model(
+  "Event_reward",
+  new mongoose.Schema({}),
+  "event_reward"
+);
+const SimilarProds = mongoose.model(
+  "SimilarProds",
+  new mongoose.Schema({}),
+  "similar_products"
+);
 
-router.post('/', async (req, res) => {
-  const newProduct = Product({ ...req.body });
+const axios = require("axios");
+const { response } = require("express");
 
-  newProduct.data = { ...req.body };
+router.post("/", async (req, res) => {
 
-  newProduct.save()
-    .then(res.send(newProduct))
-    .catch((e) => res.send(400, e));
+
+  const promises = [];
+  for (const prod of req.body) {
+    let newProd = Product({...prod})
+    newProd.data = { ...prod }
+    promises.push(
+      new Promise((resolve) => {
+        newProd.save().then(resp => resolve())        
+      })
+  )}
+
+  Promise.all(promises).then((products) => {
+    res.send("Completed")
+    catProducts();
+  });
+  
+  
+  // await Product.create(req.body)
+  //   .then((response) => {
+  //     catProducts();
+  //     res.send(response);
+  //   })
+  //   .catch((error) => res.send(error));
+  
 });
 
-router.get('/similar/:userid/:limit?/', async (req, res) => {
-  const maxProd = await EventRewards.findOne({}).sort({ reward: -1 }).limit(1).lean()
+const catProducts = async () => {
+  axios
+    .post("http://localhost:8000/product/categorize")
+    .then((response) => response)
+    .catch((err) => err);
+};
+// router.get('/categorizeProducts', async (req, res) => {
+//   axios.post('http://localhost:8000/product/categorize', req.products)
+//   .then((response) => response)
+//   .catch(err => err)
+// });
+
+router.get("/similar/:userid/:limit?/", async (req, res) => {
+  let maxProd = await EventRewards.findOne({"userId": req.params.userid})
+    .sort({ reward: -1 })
+    .limit(1)
+    .lean()
     .exec()
     .catch((e) => res.send(400, e.message));
 
-  const similarProd = await SimilarProds.findOne({ productId: maxProd.productId }).lean().exec();
+  if (!maxProd) {
+    res.send(null)
+    return
+  }
 
-  similarProd.similarProducts = similarProd.similarProducts.slice(0, req.query.limit);
+  const similarProd = await SimilarProds.findOne({
+    productId: maxProd.productId,
+  })
+    .lean()
+    .exec()
+    .catch((e) => res.send(400, e.message));
 
-  const prods = await Product.find({ sku: { $in: similarProd.similarProducts } }).lean().exec();
+  similarProd.similarProducts = similarProd.similarProducts.slice(
+    0,
+    req.query.limit
+  );
+
+  const prods = await Product.find({
+    sku: { $in: similarProd.similarProducts },
+  })
+    .lean()
+    .exec()
+    .catch((e) => res.send(400, e.message));
   console.log(similarProd, req.query);
   res.send(prods.map((p) => p.data));
 
