@@ -19,7 +19,8 @@ router.post('/', (req, res) => {
 
 const populatEventReward = async (id) => {
   axios
-    .post("http://localhost:8000/event/newevent", {"eventId": id})
+    // .post("http://localhost:8000/event/newevent", {"eventId": id})
+    .post("http://localhost:8000/event/user/event", {"eventId": id})
     .then((response) => response)
     .catch((err) => err);
 }
