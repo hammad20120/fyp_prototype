@@ -7,7 +7,7 @@ router.post('/', (req, res) => {
   const newEvent = Event({ ...req.body });
   newEvent.save()
     .then(async function(result){
-      
+      oldEventReward(result._id)
       await populatEventReward(result._id)
       return (result)
     })
@@ -17,12 +17,22 @@ router.post('/', (req, res) => {
     .catch((e) => res.send(e));
 });
 
+const oldEventReward = (id) => {
+  axios
+    .post("http://localhost:8000/event/newevent", {"eventId": id})
+    // .post("http://localhost:8000/event/user/event", {"eventId": id})
+    .then((response) => response)
+    .catch((err) => err);
+}
+
 const populatEventReward = async (id) => {
   axios
     // .post("http://localhost:8000/event/newevent", {"eventId": id})
     .post("http://localhost:8000/event/user/event", {"eventId": id})
     .then((response) => response)
     .catch((err) => err);
+
+  
 }
 
 router.get('/', (req, res) => {
